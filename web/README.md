@@ -12,10 +12,16 @@ that icon afterwards — see the storage note below, it is the whole ballgame.
 
 ## Deploying a change
 
-Push to `main`. The workflow runs `node web/test.js` and only publishes if it passes, so a
-broken build can't reach your phone. **Bump `CACHE` in `sw.js` whenever you change
-`index.html`** — otherwise the service worker keeps serving the copy it already cached and
-your change never shows up.
+Push to `main`. That's the whole process. The workflow runs `node web/test.js` and only
+publishes if it passes, so a broken build can't reach your phone.
+
+Cache invalidation is automatic: the workflow stamps `CACHE` in `sw.js` with the commit SHA
+at publish time, so every deploy retires the previous cache. You never edit that line, and
+the build fails loudly if the stamp doesn't apply.
+
+Expect the change to land on the **second** launch of the app. The first launch renders from
+the cache it already has while the new service worker downloads in the background; the next
+one picks it up. That's normal service worker behaviour, not a stuck deploy.
 
 ## Working on it locally
 

@@ -1,6 +1,10 @@
 // Caches the whole app shell so it opens with no network at all.
-// Bump CACHE when you change index.html, or the old copy keeps being served.
-const CACHE = 'zep-v3';
+//
+// The deploy workflow rewrites the line below to the commit SHA on every publish, which is
+// what invalidates the old cache. Don't bump it by hand - CI owns it. Locally it stays
+// 'zep-dev', so during development use a hard reload (or Safari's Disable Caches) after
+// editing index.html.
+const CACHE = 'zep-dev';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', event => {
