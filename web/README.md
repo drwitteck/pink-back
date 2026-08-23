@@ -1,7 +1,23 @@
 # Zep Tracker — web version
 
+**Live: https://drwitteck.github.io/zep-tracker/**
+
 Same tracker as the native app, as a single self-contained page. No build step, no
 dependencies, no network calls. Data lives in this phone's `localStorage`.
+
+## Install it on your phone
+
+Open the link above in Safari, then **Share → Add to Home Screen**. Always launch it from
+that icon afterwards — see the storage note below, it is the whole ballgame.
+
+## Deploying a change
+
+Push to `main`. The workflow runs `node web/test.js` and only publishes if it passes, so a
+broken build can't reach your phone. **Bump `CACHE` in `sw.js` whenever you change
+`index.html`** — otherwise the service worker keeps serving the copy it already cached and
+your change never shows up.
+
+## Working on it locally
 
 ```sh
 ./serve.sh          # then open the printed http://<mac-ip>:8080 on your iPhone
@@ -17,16 +33,16 @@ So: open the page in Safari, tap **Share → Add to Home Screen**, and from then
 from that icon. The app shows a banner until you do, and Settings → Storage tells you which
 mode you're in. Deleting the icon deletes the data with it — take a backup occasionally.
 
-## Two ways to host it, and the trade-off
+## Why it's on GitHub Pages and not your Mac
 
-**From your Mac (`./serve.sh`)** — genuinely local, nothing leaves your network. But plain
-`http://` is not a secure context, so the service worker can't register: your Mac has to be
-awake and on the same Wi-Fi every single time you open the app.
+`./serve.sh` is genuinely local, but plain `http://` is not a secure context, so the service
+worker can't register — your Mac would have to be awake and on the same Wi-Fi every single
+time you opened the app.
 
-**From any HTTPS static host** (GitHub Pages, Netlify, Cloudflare Pages — all free) — the
-service worker caches the whole app on first visit, so it opens instantly, offline, forever,
-with no Mac involved. The *page* is public; your *data* still never leaves the phone, because
-there is no server to send it to. For daily use this is the one that actually works.
+Over HTTPS the service worker caches the whole app on first visit, so it opens instantly and
+offline with no Mac involved. The *page* at https://drwitteck.github.io/zep-tracker/ is public; your
+*data* still never leaves the phone, because there is no server to send it to. Anyone who
+finds the URL sees an empty tracker.
 
 ## Files
 

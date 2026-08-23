@@ -12,8 +12,9 @@ Two builds, same features:
 | Rebuild cadence | every 7 days (free Apple ID) | never |
 | Storage | SwiftData, durable | `localStorage`, durable **only** from the Home Screen icon |
 
-Start with the web version — it's instant. See `web/README.md` for the storage caveat,
-which matters more than anything else there.
+**The web version is live at https://drwitteck.github.io/zep-tracker/** — open it in Safari on your
+iPhone and tap Share → Add to Home Screen. See `web/README.md` for the storage caveat, which
+matters more than anything else there.
 
 ## What it tracks
 
