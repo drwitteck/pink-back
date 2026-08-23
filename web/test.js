@@ -163,5 +163,30 @@ const csv2 = run('captured.t');
 ok('CSV escapes quotes and commas', csv2.includes('"ate, then ""napped"""'), csv2.split('\n').pop());
 ok('blank weight allowed', g('state.entries').find(e => e.date === '2026-08-22').weightKg === null);
 
+// 11. Tag-scoped CSS rules that miss a usage.
+// `label.f{...}` styled the date/weight/dose rows but silently skipped the injection-day
+// <div class="f">, which left it unstyled and let the switch knob overlap the next card.
+// Nothing failed loudly - it just looked broken. Catch the whole class of bug generically.
+const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+const scoped = [...css.matchAll(/(?:^|[}\n])\s*([a-z]+)\.([a-z0-9_-]+)\s*\{/g)];
+const mismatches = [];
+for (const [, tag, cls] of scoped) {
+  const users = new Set();
+  for (const m of html.matchAll(new RegExp('<([a-z][a-z0-9]*)\\b[^>]*class="[^"]*\\b' + cls + '\\b', 'gi'))) {
+    users.add(m[1].toLowerCase());
+  }
+  for (const u of users) if (u !== tag) mismatches.push(`${tag}.${cls} does not match <${u} class="${cls}">`);
+}
+ok('no tag-scoped CSS rule misses an element using that class', mismatches.length === 0, mismatches.join('; '));
+
+// The switch is a <span>; without an explicit display it stays inline, where width and
+// height are ignored and the absolutely positioned knob escapes its container.
+const sw = css.match(/\.switch\{([^}]*)\}/);
+ok('.switch sets an explicit display', sw && /display:\s*(inline-)?block/.test(sw[1]), sw && sw[1]);
+
+// The injection-day row is a real control, not a bare div.
+ok('injection-day row has switch semantics',
+   /<div class="f tap"[^>]*role="switch"[^>]*aria-checked=/.test(html));
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
