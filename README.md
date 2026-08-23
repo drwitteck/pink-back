@@ -28,7 +28,13 @@ Deleting the icon deletes the data with it, so take a backup now and then.
 - Optional per entry: injection day + dose (2.5 → 15 mg), and freeform notes
 
 Four tabs: **Today** (log + summary), **Trends** (charts and stats), **History** (everything
-by month), **Settings** (units, backup, erase).
+by month), **Settings** (accent, units, backup, erase).
+
+Settings offers six accent colours — Rose, Berry, Plum, Coral, Moss, Ocean — which restyle
+the whole app instantly and persist with your data. Every pair is checked against WCAG AA in
+both light and dark, and a test enforces that, so a new theme can't quietly ship unreadable.
+Note that this cannot change the **Home Screen icon**: iOS captures that once, at the moment
+you Add to Home Screen, and exposes no way for a web app to change it afterwards.
 
 ## Backup
 

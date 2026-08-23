@@ -17,10 +17,19 @@ const els = {};
 // Editor form fields only exist while the sheet is drawn. Returning null unless a test
 // explicitly seeds one mirrors the real DOM and keeps syncFields() honest.
 const FORM = new Set(['fWeight', 'fNotes', 'fDate', 'fDose']);
+const rootProps = {};          // whatever the app writes onto :root
+const meta = { content: '', setAttribute(k, v) { if (k === 'content') this.content = v; } };
 const document = {
   getElementById: id => FORM.has(id) ? (els[id] || null) : (els[id] ||= mkEl(id)),
   querySelectorAll: () => [],
+  querySelector: sel => sel.includes('theme-color') ? meta : null,
   createElement: () => mkEl('tmp'),
+  documentElement: {
+    style: {
+      setProperty(k, v) { rootProps[k] = v; },
+      removeProperty(k) { delete rootProps[k]; },
+    },
+  },
   body: { style: {}, appendChild(){}, removeChild(){} },
 };
 const localStorage = {
@@ -31,7 +40,7 @@ const sessionStorage = { getItem: () => null, setItem: () => {} };
 const ctx = {
   document, localStorage, sessionStorage, console,
   navigator: { standalone: false },
-  matchMedia: () => ({ matches: false }),
+  matchMedia: () => ({ matches: ctx.__dark === true, addEventListener(){}, removeEventListener(){} }),
   location: { protocol: 'http:', hostname: '127.0.0.1' },
   setTimeout, clearTimeout, scrollTo(){}, confirm: () => true,
   Blob: class { constructor(p){ this.parts = p; } },
@@ -187,6 +196,54 @@ ok('.switch sets an explicit display', sw && /display:\s*(inline-)?block/.test(s
 // The injection-day row is a real control, not a bare div.
 ok('injection-day row has switch semantics',
    /<div class="f tap"[^>]*role="switch"[^>]*aria-checked=/.test(html));
+
+// 12. accent picker
+run("state.accent = 'rose'; applyAccent();");
+ok('default accent applies the light value', rootProps['--accent'] === '#a85a70', rootProps['--accent']);
+ok('accent-soft gets the light alpha', rootProps['--accent-soft'] === '#a85a701f', rootProps['--accent-soft']);
+ok('status bar tint follows the accent', meta.content === '#a85a70', meta.content);
+
+ctx.__dark = true;
+run('applyAccent();');
+ok('dark scheme applies the dark value', rootProps['--accent'] === '#e8a0b4', rootProps['--accent']);
+ok('accent-soft gets the dark alpha', rootProps['--accent-soft'] === '#e8a0b42e', rootProps['--accent-soft']);
+ok('feeling ramp top follows the dark accent', run('feelColors()')[4] === '#e8a0b4');
+ctx.__dark = false;
+
+run("setAccent('plum');");
+ok('setAccent switches theme', rootProps['--accent'] === '#7d5a9e', rootProps['--accent']);
+ok('feeling ramp top follows the accent', run('feelColors()')[4] === '#7d5a9e');
+ok('feeling ramp low end stays warm', run('feelColors()')[0] === '#cf6a5e');
+
+run('save(); state = {v:1,unit:"lb",accent:"rose",lastBackup:null,entries:[]}; load();');
+ok('accent persists across reload', g('state.accent') === 'plum', g('state.accent'));
+
+run("setAccent('nonsense-theme');");
+ok('unknown theme is rejected', g('state.accent') === 'plum');
+run("state.accent = 'garbage'; applyAccent();");
+ok('corrupt stored theme falls back to rose', rootProps['--accent'] === '#a85a70');
+run("setAccent('rose');");
+
+run('renderSettings();');
+const swatches = (els['accentPicker'].innerHTML.match(/<button/g) || []).length;
+ok('one swatch per theme', swatches === 6, 'count=' + swatches);
+ok('selected swatch is marked', (els['accentPicker'].innerHTML.match(/class="on"/g) || []).length === 1);
+ok('theme name is shown', els['accentName'].textContent === 'Rose', els['accentName'].textContent);
+
+// every shipped pair must clear WCAG AA, so a future theme can't quietly ship unreadable
+const relLum = hex => {
+  const v = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255)
+    .map(x => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4));
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+};
+const ratio = (a, b) => {
+  const [hi, lo] = [relLum(a), relLum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+const themes = g('THEMES');
+const bad = Object.keys(themes).filter(k =>
+  ratio(themes[k].light, '#ffffff') < 4.5 || ratio(themes[k].dark, '#1c1c1e') < 4.5);
+ok('every theme clears WCAG AA in both schemes', bad.length === 0, bad.join(', '));
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

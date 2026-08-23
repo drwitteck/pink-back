@@ -119,6 +119,12 @@ textarea{width:100%;text-align:left;resize:none;min-height:76px}
   box-shadow:0 2px 5px #00000038;transition:transform .2s}
 .switch.on i{transform:translateX(20px)}
 
+/* accent picker */
+.swatches{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.swatches button{width:42px;height:42px;border-radius:50%;flex:none;transition:transform .15s}
+.swatches button.on{transform:scale(1.06);box-shadow:0 0 0 3px var(--card),0 0 0 5px var(--accent)}
+.swatches button:active{transform:scale(.93)}
+
 /* charts */
 svg.chart{width:100%;display:block;overflow:visible}
 .empty{text-align:center;color:var(--text2);padding:56px 20px}
@@ -156,6 +162,11 @@ svg.chart{width:100%;display:block;overflow:visible}
 
   <section id="v-settings" class="view">
     <h1>Settings</h1>
+    <div class="sechead">Accent</div>
+    <div class="card">
+      <div class="swatches" id="accentPicker"></div>
+      <div class="tiny muted center" id="accentName" style="margin-top:14px"></div>
+    </div>
     <div class="sechead">Units</div>
     <div class="card">
       <div class="seg" id="unitSeg"><button data-u="lb">Pounds</button><button data-u="kg">Kilograms</button></div>
@@ -200,7 +211,18 @@ const FACES = ['😖','😕','😐','🙂','😄'];
 const FEEL  = ['Rough','Off','OK','Good','Great'];
 const SEV   = ['Mild','Moderate','Severe'];
 
-let state = { v: 1, unit: 'lb', lastBackup: null, entries: [] };
+// Every pair is checked against WCAG AA: the light value on a white card, the dark value
+// on the dark card, both at 4.5:1 or better. Don't add one without checking it.
+const THEMES = {
+  rose:  { name: 'Rose',  light: '#a85a70', dark: '#e8a0b4', soft: '#c98ba0' },
+  berry: { name: 'Berry', light: '#9c4f7a', dark: '#e79ac4', soft: '#c47ba3' },
+  plum:  { name: 'Plum',  light: '#7d5a9e', dark: '#c3a8e8', soft: '#a48cc4' },
+  coral: { name: 'Coral', light: '#b05a4a', dark: '#f0a595', soft: '#d18f80' },
+  moss:  { name: 'Moss',  light: '#5a7a45', dark: '#a8cc85', soft: '#8fae72' },
+  ocean: { name: 'Ocean', light: '#097f84', dark: '#2ecfd4', soft: '#5ab3b6' }
+};
+
+let state = { v: 1, unit: 'lb', accent: 'rose', lastBackup: null, entries: [] };
 
 function load() {
   try {
@@ -254,6 +276,42 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
 }
 
+function theme() { return THEMES[state.accent] || THEMES.rose; }
+
+function isDark() {
+  try { return matchMedia('(prefers-color-scheme: dark)').matches; } catch (e) { return false; }
+}
+
+/* Writes the chosen accent onto :root as an inline custom property, which outranks both the
+   base and the prefers-color-scheme blocks. Recomputed whenever the system scheme flips. */
+function applyAccent() {
+  const t = theme(), dark = isDark(), c = dark ? t.dark : t.light;
+  const root = document.documentElement;
+  if (root && root.style) {
+    root.style.setProperty('--accent', c);
+    root.style.setProperty('--accent-soft', c + (dark ? '2e' : '1f'));
+  }
+  const meta = document.querySelector && document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t.light);
+}
+
+function setAccent(key) {
+  if (!THEMES[key]) return;
+  state.accent = key;
+  applyAccent();
+  render();
+}
+
+function renderAccent() {
+  const dark = isDark();
+  $('accentPicker').innerHTML = Object.keys(THEMES).map(k => {
+    const t = THEMES[k];
+    return `<button class="${state.accent === k ? 'on' : ''}" onclick="setAccent('${k}')"
+      style="background:${dark ? t.dark : t.light}" aria-label="${t.name}" title="${t.name}"></button>`;
+  }).join('');
+  $('accentName').textContent = theme().name;
+}
+
 const weighIns = list => list.filter(e => typeof e.weightKg === 'number');
 const isStandalone = () =>
   navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
@@ -262,6 +320,7 @@ const isStandalone = () =>
 
 function render() {
   save();
+  applyAccent();
   renderToday();
   renderTrends();
   renderHistory();
@@ -363,6 +422,7 @@ function renderHistory() {
 }
 
 function renderSettings() {
+  renderAccent();
   const n = state.entries.length;
   const oldest = state.entries[n - 1];
   $('storage').innerHTML =
@@ -469,7 +529,11 @@ function weightChart(w) {
   </svg>`;
 }
 
-const FEEL_COLORS = ['#cf6a5e', '#d99356', '#d4b45e', '#c98ba0', '#a85a70'];
+/* The low end stays warm so "rough" still reads as bad; only the top two follow the accent. */
+function feelColors() {
+  const t = theme();
+  return ['#cf6a5e', '#d99356', '#d4b45e', t.soft, isDark() ? t.dark : t.light];
+}
 
 function feelingChart(list) {
   const W = 340, H = 130, L = 44, R = 6, T = 8, B = 6;
@@ -477,11 +541,12 @@ function feelingChart(list) {
   const slot = (W - L - R) / Math.max(n, 1);
   const bw = Math.max(Math.min(slot - 2.5, 20), 2);
 
+  const FC = feelColors();
   const bars = list.map((e, i) => {
     const h = (e.feeling / 5) * (H - T - B);
     const x = L + slot * i + (slot - bw) / 2;
     return `<rect x="${x.toFixed(1)}" y="${(H - B - h).toFixed(1)}" width="${bw.toFixed(1)}"
-      height="${h.toFixed(1)}" rx="${Math.min(bw / 2, 3).toFixed(1)}" fill="${FEEL_COLORS[e.feeling - 1]}"/>`;
+      height="${h.toFixed(1)}" rx="${Math.min(bw / 2, 3).toFixed(1)}" fill="${FC[e.feeling - 1]}"/>`;
   }).join('');
 
   const axis = [5, 3, 1].map(v => {
@@ -714,7 +779,8 @@ $('importFile').addEventListener('change', ev => {
       const data = JSON.parse(reader.result);
       if (!Array.isArray(data.entries)) throw new Error('not a Getting My Pink Back backup');
       if (!confirm(`Replace everything on this phone with ${data.entries.length} entries from the backup?`)) return;
-      state = Object.assign({ v: 1, unit: 'lb', lastBackup: null }, data);
+      state = Object.assign({ v: 1, unit: 'lb', accent: 'rose', lastBackup: null }, data);
+      if (!THEMES[state.accent]) state.accent = 'rose';
       state.entries.sort((a, b) => b.date.localeCompare(a.date));
       render();
       toast(`Restored ${state.entries.length} entries`);
@@ -760,7 +826,13 @@ document.querySelectorAll('#unitSeg button').forEach(btn => {
 });
 
 load();
+applyAccent();
 render();
+
+try {
+  matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', () => { applyAccent(); render(); });
+} catch (e) { /* older Safari */ }
 
 // Service workers need a secure context: https, or localhost during development.
 const secure = location.protocol === 'https:' || location.hostname === 'localhost';
