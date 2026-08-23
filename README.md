@@ -87,6 +87,7 @@ web/
   sw.js                 offline cache; CACHE is rewritten by CI, don't edit it
   test.js               headless tests against a stub DOM
   serve.sh              local server + prints the LAN URL
+  icon.swift            regenerates the icons: `swift web/icon.swift web`
   icon-*.png
 .github/workflows/pages.yml
 ```
