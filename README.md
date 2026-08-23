@@ -1,10 +1,9 @@
 # Getting My Pink Back
 
-**Live: https://drwitteck.github.io/zep-tracker/**
+**Live: https://drwitteck.github.io/pink-back/**
 
-A private iPhone tracker for a weekly GLP-1 (Zepbound / tirzepatide) regimen. Logs weight,
-side effects, and how you actually feel, and charts the three together so the pattern is
-visible.
+A private iPhone tracker for a weekly injectable medication. Logs weight, side effects, and
+how you actually feel, and charts the three together so the pattern is visible.
 
 No account, no server, no analytics. There is no backend to send anything to — your entries
 live in your phone's browser storage and never leave the device.
@@ -24,7 +23,7 @@ Deleting the icon deletes the data with it, so take a backup now and then.
 
 - **Date** — one entry per day, backdate anything you missed
 - **Weight** — lb or kg, charted over 30D / 90D / all time
-- **Side effects** — pick from the usual tirzepatide list or add your own, each mild / moderate / severe
+- **Side effects** — pick from a built-in list or add your own, each mild / moderate / severe
 - **How you feel** — a 1–5 scale, charted against weight so you can see how they move together
 - Optional per entry: injection day + dose (2.5 → 15 mg), and freeform notes
 

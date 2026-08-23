@@ -696,12 +696,12 @@ function exportCSV() {
       e.notes
     ].map(csvCell).join(','));
   }
-  download('zepbound-log.csv', rows.join('\n'), 'text/csv');
+  download('pink-back-log.csv', rows.join('\n'), 'text/csv');
 }
 
 function exportJSON() {
   if (!state.entries.length) return toast('Nothing to export yet');
-  download(`zepbound-backup-${todayISO()}.json`, JSON.stringify(state, null, 2), 'application/json');
+  download(`pink-back-backup-${todayISO()}.json`, JSON.stringify(state, null, 2), 'application/json');
 }
 
 $('importFile').addEventListener('change', ev => {

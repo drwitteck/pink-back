@@ -38,12 +38,12 @@ jobs:
       - uses: actions/configure-pages@v5
       - name: Stamp the service worker cache with this commit
         run: |
-          sed -i "s|const CACHE = '[^']*';|const CACHE = 'zep-${GITHUB_SHA}';|" web/sw.js
-          grep -q "const CACHE = 'zep-${GITHUB_SHA}';" web/sw.js || {
+          sed -i "s|const CACHE = '[^']*';|const CACHE = 'pinkback-${GITHUB_SHA}';|" web/sw.js
+          grep -q "const CACHE = 'pinkback-${GITHUB_SHA}';" web/sw.js || {
             echo "::error file=web/sw.js::Cache stamping failed - the CACHE line no longer matches the expected pattern, so this deploy would ship a stale cache name."
             exit 1
           }
-          echo "Stamped cache: zep-${GITHUB_SHA}"
+          echo "Stamped cache: pinkback-${GITHUB_SHA}"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web

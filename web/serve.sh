@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 PORT="${1:-8080}"
 IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "127.0.0.1")
 echo
-echo "  Zep Tracker is being served."
+echo "  Getting My Pink Back is being served."
 echo
 echo "  On this Mac:     http://localhost:$PORT"
 echo "  On your iPhone:  http://$IP:$PORT     (same Wi-Fi network)"
