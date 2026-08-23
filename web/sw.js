@@ -1,6 +1,6 @@
 // Caches the whole app shell so it opens with no network at all.
 // Bump CACHE when you change index.html, or the old copy keeps being served.
-const CACHE = 'zep-v2';
+const CACHE = 'zep-v3';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', event => {
