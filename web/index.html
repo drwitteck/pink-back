@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Zep Tracker">
+<meta name="theme-color" content="#0e8fae">
+<title>Zep Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#f2f2f7; --card:#fff; --text:#000; --text2:#6c6c70; --text3:#aeaeb2;
+  --accent:#0a8a8f; --accent-soft:#0a8a8f1f; --sep:#0000000f; --warn:#c85a10;
+  --bar:#fffffff2; --field:#7676801f; --danger:#d3352b;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#000; --card:#1c1c1e; --text:#fff; --text2:#98989f; --text3:#5a5a5f;
+    --accent:#2ecfd4; --accent-soft:#2ecfd42e; --sep:#ffffff17; --warn:#ff9f45;
+    --bar:#1c1c1eeb; --field:#7676803d; --danger:#ff544a;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
+  background:var(--bg); color:var(--text);
+  padding-bottom:calc(58px + env(safe-area-inset-bottom));
+  -webkit-text-size-adjust:100%;
+}
+h1{font-size:32px;font-weight:700;letter-spacing:-.4px;margin:8px 0 16px}
+h2{font-size:17px;font-weight:600;margin:0}
+.wrap{max-width:640px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 12px) 16px 24px}
+.view{display:none} .view.on{display:block}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:14px}
+.muted{color:var(--text2)} .tiny{font-size:13px} .mini{font-size:11px}
+.center{text-align:center}
+.row{display:flex;align-items:center;gap:10px}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+/* summary */
+.big{font:600 44px/1 -apple-system,"SF Pro Display",sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.delta{font-size:15px;font-weight:600;margin-top:10px}
+.delta.down{color:var(--accent)} .delta.up{color:var(--warn)}
+
+/* buttons */
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.btn{display:block;width:100%;padding:14px;border-radius:13px;font-weight:600;font-size:17px;text-align:center}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.soft{background:var(--accent-soft);color:var(--accent)}
+.btn.plain{background:var(--field)}
+.btn.danger{color:var(--danger);background:var(--field)}
+.btn:active{opacity:.6}
+
+/* list rows */
+.rows{background:var(--card);border-radius:18px;overflow:hidden}
+.entry{display:flex;align-items:center;gap:12px;padding:14px 16px;width:100%;text-align:left}
+.entry:active{background:var(--field)}
+.entry+.entry{box-shadow:inset 0 .5px 0 var(--sep)}
+.face{font-size:24px;width:30px;text-align:center;flex:none}
+.entry .meta{flex:1;min-width:0}
+.entry .when{font-size:15px;font-weight:500}
+.entry .sub{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry .w{font-size:15px;font-weight:500;color:var(--text2);font-variant-numeric:tabular-nums}
+.chev{color:var(--text3);font-size:14px}
+.sechead{font-size:13px;font-weight:600;color:var(--text2);margin:20px 4px 8px;text-transform:uppercase;letter-spacing:.4px}
+
+/* stats */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.tile{background:var(--card);border-radius:16px;padding:14px}
+.tile .k{font-size:12px;color:var(--text2)}
+.tile .v{font-size:20px;font-weight:600;margin-top:5px;font-variant-numeric:tabular-nums}
+
+/* tabs */
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--bar);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  box-shadow:inset 0 .5px 0 var(--sep);padding-bottom:env(safe-area-inset-bottom);z-index:50}
+nav button{flex:1;padding:8px 0 6px;color:var(--text3);font-size:10px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button svg{width:25px;height:25px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--accent)}
+
+/* sheet */
+.sheet{position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;
+  display:none;-webkit-overflow-scrolling:touch}
+.sheet.on{display:block}
+.sheetbar{position:sticky;top:0;background:var(--bar);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  box-shadow:inset 0 -.5px 0 var(--sep);padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  display:flex;align-items:center;justify-content:space-between;z-index:2}
+.sheetbar .t{font-size:17px;font-weight:600}
+.sheetbar button{font-size:17px;color:var(--accent)}
+.sheetbar button.strong{font-weight:600}
+
+/* form */
+label.f{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--card);border-radius:13px;margin-bottom:10px}
+input,textarea,select{font:inherit;color:var(--text);background:none;border:0;outline:none;text-align:right;min-width:0}
+input[type=date]{text-align:right}
+input.num{width:92px;font-variant-numeric:tabular-nums}
+textarea{width:100%;text-align:left;resize:none;min-height:76px}
+.unit{color:var(--text2);flex:none}
+.faces{display:flex;gap:8px}
+.faces button{flex:1;padding:10px 0;border-radius:12px;font-size:27px;border:2px solid transparent}
+.faces button.on{background:var(--accent-soft);border-color:var(--accent)}
+.seg{display:flex;background:var(--field);border-radius:9px;padding:2px;gap:2px}
+.seg button{flex:1;padding:6px 0;border-radius:7px;font-size:13px;font-weight:500;color:var(--text2)}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px #0000001f}
+.se{background:var(--card);border-radius:13px;padding:12px 16px;margin-bottom:10px}
+.se .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.se .x{color:var(--text3);font-size:20px;padding:0 4px}
+.pick{display:flex;flex-wrap:wrap;gap:8px}
+.pick button{padding:9px 14px;border-radius:20px;background:var(--card);font-size:14px}
+.pick button.on{background:var(--accent);color:#fff}
+.switch{position:relative;width:51px;height:31px;background:var(--field);border-radius:16px;flex:none;transition:background .2s}
+.switch.on{background:var(--accent)}
+.switch i{position:absolute;top:2px;left:2px;width:27px;height:27px;background:#fff;border-radius:50%;
+  box-shadow:0 2px 5px #00000038;transition:transform .2s}
+.switch.on i{transform:translateX(20px)}
+
+/* charts */
+svg.chart{width:100%;display:block;overflow:visible}
+.empty{text-align:center;color:var(--text2);padding:56px 20px}
+.empty .ico{font-size:44px;opacity:.45;margin-bottom:12px}
+.hint{font-size:12px;color:var(--text2);margin:8px 4px 18px;line-height:1.5}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom));
+  background:#000000e0;color:#fff;padding:11px 20px;border-radius:22px;font-size:14px;z-index:200;
+  opacity:0;pointer-events:none;transition:opacity .25s}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="v-today" class="view on">
+    <h1>Zep Tracker</h1>
+    <div class="card center" id="summary"></div>
+    <div class="card" id="logcard"></div>
+    <div id="banner"></div>
+    <div id="recent"></div>
+  </section>
+
+  <section id="v-trends" class="view">
+    <h1>Trends</h1>
+    <div class="seg" id="rangeSeg" style="margin-bottom:16px">
+      <button data-r="30">30D</button><button data-r="90" class="on">90D</button><button data-r="0">All</button>
+    </div>
+    <div id="trends"></div>
+  </section>
+
+  <section id="v-history" class="view">
+    <div class="spread"><h1>History</h1><button class="muted" style="font-size:26px" onclick="openEditor()">+</button></div>
+    <div id="history"></div>
+  </section>
+
+  <section id="v-settings" class="view">
+    <h1>Settings</h1>
+    <div class="sechead">Units</div>
+    <div class="card">
+      <div class="seg" id="unitSeg"><button data-u="lb">Pounds</button><button data-u="kg">Kilograms</button></div>
+    </div>
+    <div class="sechead">Backup</div>
+    <button class="btn plain" style="margin-bottom:10px" onclick="exportCSV()">Export CSV</button>
+    <button class="btn plain" style="margin-bottom:10px" onclick="exportJSON()">Export backup (JSON)</button>
+    <button class="btn plain" onclick="document.getElementById('importFile').click()">Restore from backup</button>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+    <p class="hint">Everything is stored on this phone only — nothing is uploaded. Deleting the Home Screen icon deletes the data with it, so keep a backup somewhere.</p>
+    <div class="sechead">Storage</div>
+    <div class="card" id="storage"></div>
+    <div class="sechead" style="color:var(--danger)">Danger</div>
+    <button class="btn danger" onclick="wipe()">Erase all data</button>
+  </section>
+
+</div>
+
+<nav>
+  <button data-v="today" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M21.5 12h-2.4M4.9 12H2.5M18.7 5.3l-1.7 1.7M7 17l-1.7 1.7M18.7 18.7L17 17M7 7L5.3 5.3"/></svg>Today</button>
+  <button data-v="trends"><svg viewBox="0 0 24 24"><path d="M3 3v16.5A1.5 1.5 0 0 0 4.5 21H21"/><path d="M7 15l4-4.5 3 2.5L20 6"/></svg>Trends</button>
+  <button data-v="history"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>History</button>
+  <button data-v="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.6 14.6a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.55-1.1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1.04 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.55 1.04z"/></svg>Settings</button>
+</nav>
+
+<div class="sheet" id="editor"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ---------------- state ---------------- */
+
+const KEY = 'zeptracker.v1';
+const LB = 2.2046226218;
+
+const SIDE_EFFECTS = ['Nausea','Fatigue','Constipation','Diarrhea','Heartburn / reflux',
+  'Bloating / gas','Sulfur burps','Headache','Dizziness','Appetite loss',
+  'Injection site reaction','Stomach pain','Vomiting','Muscle cramps','Trouble sleeping'];
+const DOSES = [2.5, 5, 7.5, 10, 12.5, 15];
+const FACES = ['😖','😕','😐','🙂','😄'];
+const FEEL  = ['Rough','Off','OK','Good','Great'];
+const SEV   = ['Mild','Moderate','Severe'];
+
+let state = { v: 1, unit: 'lb', lastBackup: null, entries: [] };
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) state = Object.assign(state, JSON.parse(raw));
+  } catch (e) { console.warn('load failed', e); }
+  state.entries.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch (e) {
+    toast('Could not save — storage may be full');
+  }
+}
+
+/* ---------------- helpers ---------------- */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const todayISO = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+};
+const parseISO = s => new Date(s + 'T00:00:00');
+
+function dayLabel(iso) {
+  const diff = Math.round((parseISO(todayISO()) - parseISO(iso)) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return parseISO(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+const unitShort = () => state.unit;
+const fromKg = kg => state.unit === 'lb' ? kg * LB : kg;
+const toKg   = v  => state.unit === 'lb' ? v / LB : v;
+const fmtW   = (kg, withUnit = true) => fromKg(kg).toFixed(1) + (withUnit ? ' ' + unitShort() : '');
+const fmtD   = kg => { const v = fromKg(kg); return (v > 0 ? '+' : '') + v.toFixed(1) + ' ' + unitShort(); };
+const fmtDose = mg => (mg % 1 ? mg.toFixed(1) : mg) + ' mg';
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+const weighIns = list => list.filter(e => typeof e.weightKg === 'number');
+const isStandalone = () =>
+  navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+
+/* ---------------- rendering ---------------- */
+
+function render() {
+  save();
+  renderToday();
+  renderTrends();
+  renderHistory();
+  renderSettings();
+  document.querySelectorAll('#unitSeg button').forEach(b =>
+    b.classList.toggle('on', b.dataset.u === state.unit));
+}
+
+function entryLine(e) {
+  const bits = [];
+  if (e.se && e.se.length) bits.push(e.se.map(s => s.k).join(', '));
+  else if (e.notes) bits.push(e.notes);
+  return bits.join(' · ');
+}
+
+function rowHTML(e) {
+  const w = typeof e.weightKg === 'number' ? `<div class="w">${fmtW(e.weightKg)}</div>` : '';
+  const sub = entryLine(e);
+  return `<button class="entry" onclick="openEditor('${e.id}')">
+    <div class="face">${FACES[e.feeling - 1]}</div>
+    <div class="meta">
+      <div class="when">${dayLabel(e.date)}${e.shot ? ' <span style="color:var(--accent)">💉</span>' : ''}</div>
+      ${sub ? `<div class="sub">${esc(sub)}</div>` : ''}
+    </div>${w}<div class="chev">›</div></button>`;
+}
+
+function renderToday() {
+  const w = weighIns(state.entries);
+  const latest = w[0], first = w[w.length - 1];
+
+  $('summary').innerHTML = latest
+    ? `<div class="big">${fmtW(latest.weightKg)}</div>
+       <div class="tiny muted" style="margin-top:6px">Last weigh-in ${dayLabel(latest.date)}</div>
+       ${w.length > 1 ? (() => {
+          const d = latest.weightKg - first.weightKg;
+          return `<div class="delta ${d <= 0 ? 'down' : 'up'}">${d <= 0 ? '↓' : '↑'} ${fmtD(d)}
+            <span class="muted">since ${parseISO(first.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></div>`;
+        })() : ''}`
+    : `<div style="font-size:38px;opacity:.5">⚖️</div>
+       <h2 style="margin:10px 0 4px">No weigh-ins yet</h2>
+       <div class="tiny muted">Log your first entry to start the trend.</div>`;
+
+  const today = state.entries.find(e => e.date === todayISO());
+  $('logcard').innerHTML = today
+    ? `<div class="row" style="margin-bottom:12px">
+         <div style="font-size:28px">${FACES[today.feeling - 1]}</div>
+         <div><div style="font-weight:600;font-size:15px">Logged today</div>
+         <div class="tiny muted">${esc(summaryOf(today))}</div></div>
+       </div>
+       <button class="btn soft" onclick="openEditor('${today.id}')">Edit today's entry</button>`
+    : `<button class="btn primary" onclick="openEditor()">＋ Log today</button>`;
+
+  const recent = state.entries.slice(0, 5);
+  $('recent').innerHTML = recent.length
+    ? `<div class="sechead">Recent</div><div class="rows">${recent.map(rowHTML).join('')}</div>`
+    : '';
+
+  $('banner').innerHTML = (isStandalone() || dismissed('a2hs')) ? '' :
+      `<div class="card" style="background:var(--accent-soft)">
+        <div style="font-weight:600;font-size:15px;margin-bottom:5px">Add to Home Screen</div>
+        <div class="tiny" style="line-height:1.5">Right now this is a normal Safari tab, and iOS will erase saved
+        entries after 7 days of not opening it. Tap Share → <b>Add to Home Screen</b> and open it from the icon —
+        then your data sticks around for good.</div>
+        <button class="btn soft" style="margin-top:12px;padding:9px"
+          onclick="dismiss('a2hs')">Got it</button>
+      </div>`;
+}
+
+function dismissed(k) {
+  try { return sessionStorage.getItem('dismiss.' + k) === '1'; } catch (e) { return false; }
+}
+function dismiss(k) {
+  try { sessionStorage.setItem('dismiss.' + k, '1'); } catch (e) {}
+  render();
+}
+
+function summaryOf(e) {
+  const parts = [FEEL[e.feeling - 1]];
+  if (typeof e.weightKg === 'number') parts.push(fmtW(e.weightKg));
+  parts.push(e.se && e.se.length ? `${e.se.length} side effect${e.se.length === 1 ? '' : 's'}` : 'no side effects');
+  return parts.join(' · ');
+}
+
+function renderHistory() {
+  if (!state.entries.length) {
+    $('history').innerHTML = `<div class="empty"><div class="ico">📋</div>
+      <h2>No entries yet</h2><div class="tiny" style="margin-top:6px">Everything you log shows up here.</div></div>`;
+    return;
+  }
+  const groups = {};
+  for (const e of state.entries) {
+    const k = e.date.slice(0, 7);
+    (groups[k] ||= []).push(e);
+  }
+  $('history').innerHTML = Object.keys(groups).sort().reverse().map(k => {
+    const title = parseISO(k + '-01').toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    return `<div class="sechead">${title}</div><div class="rows">${groups[k].map(rowHTML).join('')}</div>`;
+  }).join('');
+}
+
+function renderSettings() {
+  const n = state.entries.length;
+  const oldest = state.entries[n - 1];
+  $('storage').innerHTML =
+    `<div class="spread"><span>Entries</span><span class="muted">${n}</span></div>
+     ${oldest ? `<div class="spread" style="margin-top:10px"><span>Tracking since</span>
+       <span class="muted">${parseISO(oldest.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>` : ''}
+     <div class="spread" style="margin-top:10px"><span>Last backup</span>
+       <span class="muted">${state.lastBackup ? dayLabel(state.lastBackup) : 'never'}</span></div>
+     <div class="spread" style="margin-top:10px"><span>Home Screen app</span>
+       <span class="muted">${isStandalone() ? 'yes — data is durable' : 'no — data may expire'}</span></div>`;
+}
+</script>
+<script>
+'use strict';
+
+/* ---------------- trends ---------------- */
+
+let range = 90;
+
+function inRange() {
+  if (!range) return state.entries.slice();
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - range);
+  const iso = cutoff.toISOString().slice(0, 10);
+  return state.entries.filter(e => e.date >= iso);
+}
+
+function card(title, sub, body) {
+  return `<div class="card"><h2>${title}</h2>
+    ${sub ? `<div class="tiny muted" style="margin-top:3px">${sub}</div>` : ''}
+    <div style="margin-top:12px">${body}</div></div>`;
+}
+
+function renderTrends() {
+  const el = $('trends');
+  if (!state.entries.length) {
+    el.innerHTML = `<div class="empty"><div class="ico">📈</div><h2>Nothing to chart yet</h2>
+      <div class="tiny" style="margin-top:6px">Log a few days and your trends will show up here.</div></div>`;
+    return;
+  }
+  const list = inRange().slice().sort((a, b) => a.date.localeCompare(b.date));
+  const w = weighIns(list);
+  const feels = list.map(e => e.feeling);
+  const change = w.length > 1 ? w[w.length - 1].weightKg - w[0].weightKg : null;
+  const low = w.length ? Math.min(...w.map(e => e.weightKg)) : null;
+
+  el.innerHTML =
+    `<div class="grid">
+      <div class="tile"><div class="k">Change</div>
+        <div class="v" style="color:${change === null ? 'var(--text2)' : change <= 0 ? 'var(--accent)' : 'var(--warn)'}">
+        ${change === null ? '—' : fmtD(change)}</div></div>
+      <div class="tile"><div class="k">Lowest</div>
+        <div class="v" style="color:var(--accent)">${low === null ? '—' : fmtW(low)}</div></div>
+      <div class="tile"><div class="k">Avg feeling</div>
+        <div class="v">${feels.length ? (feels.reduce((a, b) => a + b, 0) / feels.length).toFixed(1) + ' / 5' : '—'}</div></div>
+      <div class="tile"><div class="k">Days logged</div><div class="v">${list.length}</div></div>
+    </div>` +
+    card('Weight', w.length < 2 ? 'Needs at least two weigh-ins' : '', w.length >= 2 ? weightChart(w) : '') +
+    card('How I felt', '', feelingChart(list)) +
+    sideEffectCard(list);
+}
+
+function weightChart(w) {
+  const W = 340, H = 180, L = 38, R = 10, T = 14, B = 22;
+  const xs = w.map(e => parseISO(e.date).getTime());
+  const ys = w.map(e => fromKg(e.weightKg));
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const pad = Math.max((y1 - y0) * 0.15, 0.5);
+  y0 -= pad; y1 += pad;
+
+  const px = t => L + (x1 === x0 ? 0.5 : (t - x0) / (x1 - x0)) * (W - L - R);
+  const py = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+  const pts = w.map((e, i) => [px(xs[i]), py(ys[i])]);
+
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const area = line + ` L${pts[pts.length - 1][0].toFixed(1)} ${H - B} L${pts[0][0].toFixed(1)} ${H - B} Z`;
+
+  const grid = [y1, (y0 + y1) / 2, y0].map(v =>
+    `<line x1="${L}" y1="${py(v).toFixed(1)}" x2="${W - R}" y2="${py(v).toFixed(1)}"
+       stroke="var(--sep)" stroke-width="1"/>
+     <text x="${L - 7}" y="${(py(v) + 4).toFixed(1)}" text-anchor="end"
+       font-size="10" fill="var(--text2)">${v.toFixed(0)}</text>`).join('');
+
+  const dots = pts.map(p =>
+    `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.4"
+       fill="var(--accent)" stroke="var(--card)" stroke-width="1.6"/>`).join('');
+
+  const label = t => parseISO(new Date(t).toISOString().slice(0, 10))
+    .toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight over time">
+    <defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--accent)" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${grid}
+    <path d="${area}" fill="url(#wg)"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.4"
+      stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    <text x="${L}" y="${H - 4}" font-size="10" fill="var(--text2)">${label(x0)}</text>
+    <text x="${W - R}" y="${H - 4}" font-size="10" fill="var(--text2)" text-anchor="end">${label(x1)}</text>
+  </svg>`;
+}
+
+const FEEL_COLORS = ['#e0574d', '#e8903c', '#dcc03f', '#4bb8ad', '#0a9aa0'];
+
+function feelingChart(list) {
+  const W = 340, H = 130, L = 44, R = 6, T = 8, B = 6;
+  const n = list.length;
+  const slot = (W - L - R) / Math.max(n, 1);
+  const bw = Math.max(Math.min(slot - 2.5, 20), 2);
+
+  const bars = list.map((e, i) => {
+    const h = (e.feeling / 5) * (H - T - B);
+    const x = L + slot * i + (slot - bw) / 2;
+    return `<rect x="${x.toFixed(1)}" y="${(H - B - h).toFixed(1)}" width="${bw.toFixed(1)}"
+      height="${h.toFixed(1)}" rx="${Math.min(bw / 2, 3).toFixed(1)}" fill="${FEEL_COLORS[e.feeling - 1]}"/>`;
+  }).join('');
+
+  const axis = [5, 3, 1].map(v => {
+    const y = H - B - (v / 5) * (H - T - B);
+    return `<text x="${L - 7}" y="${(y + 3.5).toFixed(1)}" text-anchor="end"
+      font-size="9.5" fill="var(--text2)">${FEEL[v - 1]}</text>
+      <line x1="${L}" y1="${y.toFixed(1)}" x2="${W - R}" y2="${y.toFixed(1)}" stroke="var(--sep)"/>`;
+  }).join('');
+
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily feeling">${axis}${bars}</svg>`;
+}
+
+function sideEffectCard(list) {
+  const counts = {};
+  for (const e of list) for (const s of (e.se || [])) counts[s.k] = (counts[s.k] || 0) + 1;
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (!top.length) return card('Side effects', 'None logged in this range', '');
+
+  const max = top[0][1];
+  const bars = top.map(([k, c]) => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k)}</div>
+        <div style="height:8px;background:var(--field);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${(c / max * 100).toFixed(1)}%;background:var(--accent);border-radius:4px"></div>
+        </div>
+      </div>
+      <div class="tiny muted" style="width:44px;text-align:right">${c} day${c === 1 ? '' : 's'}</div>
+    </div>`).join('');
+  return card('Side effects', '', bars);
+}
+</script>
+<script>
+'use strict';
+
+/* ---------------- editor ---------------- */
+
+let draft = null, editingId = null;
+
+function openEditor(id) {
+  const existing = id ? state.entries.find(e => e.id === id) : null;
+  editingId = id || null;
+  draft = existing
+    ? JSON.parse(JSON.stringify(existing))
+    : { id: null, date: todayISO(), weightKg: null, feeling: state.entries[0]?.feeling ?? 3,
+        se: [], notes: '', shot: false, dose: null };
+  draft.weightText = typeof draft.weightKg === 'number' ? fromKg(draft.weightKg).toFixed(1) : '';
+  drawEditor();
+  $('editor').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditor() {
+  $('editor').classList.remove('on');
+  document.body.style.overflow = '';
+  draft = null; editingId = null;
+}
+
+function drawEditor() {
+  const d = draft;
+  const chips = SIDE_EFFECTS.filter(k => !d.se.some(s => s.k === k));
+
+  $('editor').innerHTML = `
+    <div class="sheetbar">
+      <button onclick="closeEditor()">Cancel</button>
+      <div class="t">${editingId ? 'Edit Entry' : 'New Entry'}</div>
+      <button class="strong" onclick="saveDraft()">Save</button>
+    </div>
+    <div class="wrap" style="padding-top:16px;padding-bottom:60px">
+
+      <label class="f"><span>Date</span>
+        <input type="date" id="fDate" value="${d.date}" max="${todayISO()}"></label>
+
+      <label class="f"><span>Weight</span>
+        <span class="row"><input class="num" id="fWeight" inputmode="decimal" placeholder="—"
+          value="${d.weightText}"><span class="unit">${unitShort()}</span></span></label>
+
+      <div class="sechead">How do I feel?</div>
+      <div class="card">
+        <div class="faces">${FACES.map((f, i) =>
+          `<button class="${d.feeling === i + 1 ? 'on' : ''}" onclick="setFeeling(${i + 1})">${f}</button>`).join('')}</div>
+        <div class="center tiny muted" style="margin-top:10px">${FEEL[d.feeling - 1]}</div>
+      </div>
+
+      <div class="sechead">Side effects</div>
+      ${d.se.map((s, i) => `
+        <div class="se">
+          <div class="top"><span style="font-size:15px">${esc(s.k)}</span>
+            <button class="x" onclick="dropEffect(${i})">✕</button></div>
+          <div class="seg">${SEV.map((label, j) =>
+            `<button class="${s.s === j + 1 ? 'on' : ''}" onclick="setSeverity(${i},${j + 1})">${label}</button>`).join('')}</div>
+        </div>`).join('')}
+      <div class="pick">
+        ${chips.map(k => `<button onclick="addEffect(${JSON.stringify(k).replace(/"/g, '&quot;')})">＋ ${esc(k)}</button>`).join('')}
+      </div>
+
+      <div class="sechead">Shot</div>
+      <div class="f" onclick="toggleShot()" style="cursor:pointer">
+        <span>Injection day</span><span class="switch ${d.shot ? 'on' : ''}"><i></i></span></div>
+      ${d.shot ? `<label class="f"><span>Dose</span>
+        <select id="fDose" onchange="draft.dose = this.value ? parseFloat(this.value) : null">
+          <option value="">Not set</option>
+          ${DOSES.map(mg => `<option value="${mg}" ${d.dose === mg ? 'selected' : ''}>${fmtDose(mg)}</option>`).join('')}
+        </select></label>` : ''}
+
+      <div class="sechead">Notes</div>
+      <div class="card" style="padding:12px 16px">
+        <textarea id="fNotes" placeholder="Anything worth remembering">${esc(d.notes)}</textarea>
+      </div>
+
+      ${editingId ? `<button class="btn danger" style="margin-top:18px" onclick="deleteEntry()">Delete entry</button>` : ''}
+    </div>`;
+}
+
+/* Pull the free-text fields out of the DOM before any redraw, so typing isn't lost. */
+function syncFields() {
+  const w = $('fWeight'), n = $('fNotes'), dt = $('fDate');
+  if (w) draft.weightText = w.value;
+  if (n) draft.notes = n.value;
+  if (dt) draft.date = dt.value || draft.date;
+}
+
+function setFeeling(v)      { syncFields(); draft.feeling = v; drawEditor(); }
+function addEffect(k)       { syncFields(); draft.se.push({ k, s: 1 }); drawEditor(); }
+function dropEffect(i)      { syncFields(); draft.se.splice(i, 1); drawEditor(); }
+function setSeverity(i, s)  { syncFields(); draft.se[i].s = s; drawEditor(); }
+function toggleShot()       { syncFields(); draft.shot = !draft.shot; if (!draft.shot) draft.dose = null; drawEditor(); }
+
+function saveDraft() {
+  syncFields();
+  const raw = parseFloat(String(draft.weightText).replace(',', '.'));
+  const entry = {
+    id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)),
+    date: draft.date,
+    weightKg: Number.isFinite(raw) && raw > 0 ? toKg(raw) : null,
+    feeling: draft.feeling,
+    se: draft.se,
+    notes: draft.notes.trim(),
+    shot: draft.shot,
+    dose: draft.shot ? draft.dose : null
+  };
+
+  const i = state.entries.findIndex(e => e.id === entry.id);
+  if (i >= 0) state.entries[i] = entry;
+  else state.entries.push(entry);
+
+  state.entries.sort((a, b) => b.date.localeCompare(a.date));
+  closeEditor();
+  render();
+  toast(i >= 0 ? 'Entry updated' : 'Entry saved');
+}
+
+function deleteEntry() {
+  if (!confirm('Delete this entry?')) return;
+  state.entries = state.entries.filter(e => e.id !== editingId);
+  closeEditor();
+  render();
+  toast('Entry deleted');
+}
+
+/* ---------------- backup ---------------- */
+
+async function download(name, text, mime) {
+  const file = new File([text], name, { type: mime });
+
+  // On iOS — especially once installed to the Home Screen — an <a download> click is
+  // often swallowed. The share sheet is the reliable route to Files / Mail / iCloud.
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: name });
+      noteBackup();
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;   // user tapped cancel
+    }
+  }
+
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  noteBackup();
+}
+
+function noteBackup() {
+  state.lastBackup = todayISO();
+  save();
+  renderSettings();
+  toast('Backup created');
+}
+
+function csvCell(s) {
+  s = String(s ?? '');
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+/* Same column order as the native app's export, so the two are interchangeable. */
+function exportCSV() {
+  if (!state.entries.length) return toast('Nothing to export yet');
+  const rows = [`date,weight_${unitShort()},feeling,feeling_label,injection,dose_mg,side_effects,notes`];
+  for (const e of state.entries.slice().sort((a, b) => a.date.localeCompare(b.date))) {
+    rows.push([
+      e.date,
+      typeof e.weightKg === 'number' ? fromKg(e.weightKg).toFixed(1) : '',
+      e.feeling,
+      FEEL[e.feeling - 1],
+      e.shot ? 'yes' : '',
+      e.dose ?? '',
+      (e.se || []).map(s => `${s.k} (${SEV[s.s - 1]})`).join('; '),
+      e.notes
+    ].map(csvCell).join(','));
+  }
+  download('zepbound-log.csv', rows.join('\n'), 'text/csv');
+}
+
+function exportJSON() {
+  if (!state.entries.length) return toast('Nothing to export yet');
+  download(`zepbound-backup-${todayISO()}.json`, JSON.stringify(state, null, 2), 'application/json');
+}
+
+$('importFile').addEventListener('change', ev => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data.entries)) throw new Error('not a Zep Tracker backup');
+      if (!confirm(`Replace everything on this phone with ${data.entries.length} entries from the backup?`)) return;
+      state = Object.assign({ v: 1, unit: 'lb', lastBackup: null }, data);
+      state.entries.sort((a, b) => b.date.localeCompare(a.date));
+      render();
+      toast(`Restored ${state.entries.length} entries`);
+    } catch (e) {
+      toast("That file isn't a valid backup");
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+});
+
+function wipe() {
+  if (!confirm('Erase every entry on this phone? This cannot be undone.')) return;
+  if (!confirm('Really erase everything? Export a backup first if you might want it.')) return;
+  state.entries = [];
+  render();
+  toast('All data erased');
+}
+
+/* ---------------- chrome ---------------- */
+
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b === btn));
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + btn.dataset.v));
+    scrollTo(0, 0);
+  });
+});
+
+document.querySelectorAll('#rangeSeg button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#rangeSeg button').forEach(b => b.classList.toggle('on', b === btn));
+    range = parseInt(btn.dataset.r, 10);
+    renderTrends();
+  });
+});
+
+document.querySelectorAll('#unitSeg button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.unit = btn.dataset.u;   // weights are stored in kg, so this is display-only
+    render();
+  });
+});
+
+load();
+render();
+
+// Service workers need a secure context: https, or localhost during development.
+const secure = location.protocol === 'https:' || location.hostname === 'localhost';
+if (secure && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
