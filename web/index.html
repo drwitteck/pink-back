@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Zep Tracker">
+<meta name="apple-mobile-web-app-title" content="Pink Back">
 <meta name="theme-color" content="#0e8fae">
-<title>Zep Tracker</title>
+<title>Pink Back</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <style>
@@ -133,7 +133,7 @@ svg.chart{width:100%;display:block;overflow:visible}
 <div class="wrap">
 
   <section id="v-today" class="view on">
-    <h1>Zep Tracker</h1>
+    <h1>Pink Back</h1>
     <div class="card center" id="summary"></div>
     <div class="card" id="logcard"></div>
     <div id="banner"></div>
@@ -711,7 +711,7 @@ $('importFile').addEventListener('change', ev => {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      if (!Array.isArray(data.entries)) throw new Error('not a Zep Tracker backup');
+      if (!Array.isArray(data.entries)) throw new Error('not a Pink Back backup');
       if (!confirm(`Replace everything on this phone with ${data.entries.length} entries from the backup?`)) return;
       state = Object.assign({ v: 1, unit: 'lb', lastBackup: null }, data);
       state.entries.sort((a, b) => b.date.localeCompare(a.date));
