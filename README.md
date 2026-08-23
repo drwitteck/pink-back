@@ -1,76 +1,92 @@
-# Zep Tracker
+# Pink Back
 
-A private, offline iPhone tracker for Zepbound. No account, no server, no analytics —
-your data never leaves the phone.
+**Live: https://drwitteck.github.io/zep-tracker/**
 
-Two builds, same features:
+A private iPhone tracker for a weekly GLP-1 (Zepbound / tirzepatide) regimen. Logs weight,
+side effects, and how you actually feel, and charts the three together so the pattern is
+visible.
 
-| | `ZepTracker/` (native) | `web/` (web app) |
-|---|---|---|
-| Install | Xcode → your iPhone | Safari → Add to Home Screen |
-| Needs | Xcode + Apple ID | a URL to open |
-| Rebuild cadence | every 7 days (free Apple ID) | never |
-| Storage | SwiftData, durable | `localStorage`, durable **only** from the Home Screen icon |
+No account, no server, no analytics. There is no backend to send anything to — your entries
+live in your phone's browser storage and never leave the device.
 
-**The web version is live at https://drwitteck.github.io/zep-tracker/** — open it in Safari on your
-iPhone and tap Share → Add to Home Screen. See `web/README.md` for the storage caveat, which
-matters more than anything else there.
+## Install it
+
+Open the link above in Safari on your iPhone, then **Share → Add to Home Screen**, and from
+then on launch it from that icon.
+
+That step is not cosmetic. iOS erases `localStorage` for ordinary Safari tabs after **7 days**
+without a visit; web apps launched from the Home Screen are exempt. The app nags you with a
+banner until you do it, and Settings → Storage tells you which mode you're in.
+
+Deleting the icon deletes the data with it, so take a backup now and then.
 
 ## What it tracks
 
 - **Date** — one entry per day, backdate anything you missed
 - **Weight** — lb or kg, charted over 30D / 90D / all time
-- **Side effects** — pick from the usual tirzepatide list (or add your own), each with mild / moderate / severe
-- **How you feel** — 1–5 scale, charted alongside weight so you can see the pattern
-- Optional per-entry: injection day + dose (2.5 → 15 mg), freeform notes
+- **Side effects** — pick from the usual tirzepatide list or add your own, each mild / moderate / severe
+- **How you feel** — a 1–5 scale, charted against weight so you can see how they move together
+- Optional per entry: injection day + dose (2.5 → 15 mg), and freeform notes
 
-Three tabs: **Today** (log + at-a-glance summary), **Trends** (charts + stats), **History** (everything, grouped by month).
-Settings has a CSV export — worth doing occasionally, since on-device-only means no automatic backup.
+Four tabs: **Today** (log + summary), **Trends** (charts and stats), **History** (everything
+by month), **Settings** (units, backup, erase).
 
-## Getting it on your phone
+## Backup
 
-The iOS platform component isn't installed in Xcode yet. One time only:
+Settings offers **Export CSV** (for a spreadsheet or your doctor) and **Export backup (JSON)**,
+which round-trips losslessly through **Restore from backup**. Both go through the iOS share
+sheet, so you can drop them into Files, iCloud, or Mail.
+
+Since the data exists in exactly one place, this is the only thing standing between you and a
+lost phone. Worth doing every few weeks.
+
+## Working on it
 
 ```sh
-xcodebuild -downloadPlatform iOS      # ~8 GB, takes a while
+cd web
+./serve.sh          # serves on your LAN; prints the URL to open on the phone
+node test.js        # 33 logic tests against a stub DOM, no browser needed
 ```
 
-Then:
+`index.html` is the entire app — markup, styles, and logic in one file, no dependencies and
+no build step. The file you edit is the file that ships.
 
-```sh
-xcodegen generate                     # only needed if you add/remove files
-open ZepTracker.xcodeproj
+Note that `localhost` is a secure context, so the service worker registers during local
+development too and can serve you a stale page while you're editing. Hard-reload, or use
+Safari's Develop → Disable Caches.
+
+## Deploying
+
+Push to `main`. That's the whole process.
+
+The workflow runs `node web/test.js` first and only publishes if it passes, so a broken build
+can't reach your phone. Cache invalidation is automatic: the workflow stamps `CACHE` in
+`sw.js` with the commit SHA at publish time, so every deploy retires the previous cache. You
+never edit that line, and the build fails loudly if the stamp stops applying.
+
+Expect a change to land on the **second** launch of the app. The first renders from the cache
+it already has while the new service worker downloads in the background; the next picks it up.
+That's normal service worker behaviour, not a stuck deploy.
+
+## Why GitHub Pages and not your own Mac
+
+`serve.sh` is genuinely local, but plain `http://` is not a secure context, so the service
+worker can't register — your Mac would have to be awake and on the same Wi-Fi every time you
+opened the app.
+
+Over HTTPS the worker caches the whole app on first visit, so it opens instantly and offline
+with no Mac involved. The *page* is public; the *data* still never leaves your phone, because
+there is no server to send it to. Anyone who finds the URL sees an empty tracker.
+
+## Files
+
 ```
-
-In Xcode:
-
-1. Plug in your iPhone (or pair it over Wi-Fi via Window → Devices and Simulators).
-2. Select the **ZepTracker** target → **Signing & Capabilities** → set **Team** to your Apple ID.
-   Add the account under Xcode → Settings → Accounts if it isn't there.
-   If the bundle ID `com.derekwitteck.ZepTracker` is taken, change it to anything unique.
-3. Pick your iPhone in the device dropdown and hit ⌘R.
-4. First run only: on the phone, Settings → General → VPN & Device Management → trust your developer certificate.
-
-**Free Apple ID:** the app stops launching after 7 days; rebuild from Xcode to reset it.
-Your data survives — it's a reinstall over the top, not a delete. A $99/yr Apple Developer
-account extends that to a year.
-
-## Project layout
-
+web/
+  index.html            the entire app
+  manifest.webmanifest  makes Add to Home Screen give a real icon and no Safari chrome
+  sw.js                 offline cache; CACHE is rewritten by CI, don't edit it
+  test.js               headless tests against a stub DOM
+  serve.sh              local server + prints the LAN URL
+  icon-*.png
+.github/workflows/pages.yml
 ```
-project.yml                  xcodegen spec — the .xcodeproj is generated from this
-ZepTracker/
-  ZepTrackerApp.swift        entry point + tab bar
-  Models/LogEntry.swift      the SwiftData model, feeling scale, dose ladder
-  Models/SideEffect.swift    side effect struct + catalog of common ones
-  Views/HomeView.swift       Today tab
-  Views/EntryEditorView.swift  add/edit sheet + side effect picker
-  Views/TrendsView.swift     charts and stats
-  Views/HistoryView.swift    full log by month
-  Views/SettingsView.swift   units, CSV export
-  Support/Units.swift        lb/kg conversion and formatting
-  Support/CSVExport.swift    export
-```
-
-Weight is stored canonically in kilograms and converted for display, so flipping units
-in Settings never rewrites your data.

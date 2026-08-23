@@ -149,7 +149,7 @@ const csv = ctx.captured ? ctx.captured.t : run('captured && captured.t');
 ok('CSV exported', typeof csv === 'string' && csv.length > 0);
 if (typeof csv === 'string') {
   const lines = csv.trim().split('\n');
-  ok('CSV header matches native app', lines[0] === 'date,weight_lb,feeling,feeling_label,injection,dose_mg,side_effects,notes', lines[0]);
+  ok('CSV header is stable', lines[0] === 'date,weight_lb,feeling,feeling_label,injection,dose_mg,side_effects,notes', lines[0]);
   ok('CSV row count', lines.length === 4, lines.length);
   ok('CSV oldest first', lines[1].startsWith('2026-06-01'), lines[1]);
   ok('CSV severity labelled', lines[1].includes('Nausea (Moderate)'), lines[1]);

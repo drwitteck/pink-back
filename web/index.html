@@ -680,7 +680,7 @@ function csvCell(s) {
   return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-/* Same column order as the native app's export, so the two are interchangeable. */
+/* One row per entry, oldest first — the shape a spreadsheet or a doctor expects. */
 function exportCSV() {
   if (!state.entries.length) return toast('Nothing to export yet');
   const rows = [`date,weight_${unitShort()},feeling,feeling_label,injection,dose_mg,side_effects,notes`];
